@@ -59,7 +59,7 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        frameAncestors: ["'self'", "http://localhost:5173"],
+        frameAncestors: ["'self'", "https://churchlife.vercel.app"],
       },
     },
   })
@@ -94,7 +94,7 @@ app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"), {
     setHeaders: (res, filePath, stat) => {
-      res.set("Access-Control-Allow-Origin", "http://localhost:5173");
+      res.set("Access-Control-Allow-Origin", "https://churchlife.vercel.app");
     },
   })
 );
