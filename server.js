@@ -68,6 +68,10 @@ app.use(
 // ── Mount payments route BEFORE CSRF protection ─────────────────────────────
 app.use("/api/payments", paymentRoutes);
 
+// ── Exempt Auth Routes from CSRF Protection ───────────────────────────────────
+// Mount authentication routes before applying CSRF protection so that login, register, etc. bypass CSRF.
+app.use("/api/auth", authRoutes);
+
 // ── Set up CSRF protection for all subsequent routes ──────────────────────────
 const csrfProtection = csurf({
   cookie: {
@@ -77,6 +81,7 @@ const csrfProtection = csurf({
   },
 });
 
+// Home endpoint to verify backend is working
 app.get("/", function (req, res) {
   res.send("backend is workings");
 });
@@ -100,7 +105,6 @@ app.use(
 );
 
 // ── Mount other routes ─────────────────────────────────────────────────────────
-app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/users", usersRoutes);
@@ -131,7 +135,7 @@ app.use((err, req, res, next) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({
-    message: "An unexpected error occurred. Please try again later."
+    message: "An unexpected error occurred. Please try again later.",
   });
 });
 
