@@ -77,6 +77,10 @@ const csrfProtection = csurf({
   },
 });
 
+app.get("/", function (req, res) {
+  res.send("backend is working");
+});
+
 // Endpoint to provide CSRF token to the client
 app.get("/api/csrf-token", csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
