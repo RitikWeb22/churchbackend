@@ -69,11 +69,15 @@ app.use(
 app.use("/api/payments", paymentRoutes);
 
 // ── Set up CSRF protection for all subsequent routes ──────────────────────────
+// Update csurf config to read the token from the header "x-csrf-token" or from req.body._csrf.
 const csrfProtection = csurf({
   cookie: {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+  },
+  value: (req) => {
+    return req.headers["x-csrf-token"] || req.body._csrf || "";
   },
 });
 
@@ -83,7 +87,7 @@ app.get("/api/csrf-token", csrfProtection, (req, res) => {
 });
 
 // ── Conditionally apply CSRF protection ────────────────────────────────────────
-// For PUT requests to /api/home (file uploads), we skip CSRF protection
+// For PUT requests to /api/home (file uploads), skip CSRF protection.
 app.use((req, res, next) => {
   if (req.path === "/api/home" && req.method === "PUT") {
     return next();
