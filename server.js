@@ -15,7 +15,6 @@ const path = require("path");
 const connectDB = require("./config/Database");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
-const csurf = require("csurf");
 const helmet = require("helmet");
 
 // Import routes
@@ -65,40 +64,11 @@ app.use(
   })
 );
 
-// ── Mount payments route BEFORE CSRF protection ─────────────────────────────
+// ── Mount payments route (no CSRF protection) ─────────────────────────────
 app.use("/api/payments", paymentRoutes);
 
-// ── Set up CSRF protection for all subsequent routes ──────────────────────────
-// Configure csurf to read the token from the header "x-csrf-token" or from req.body._csrf.
-const csrfProtection = csurf({
-  cookie: {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  },
-  value: (req) => {
-    return req.headers["x-csrf-token"] || req.body._csrf || "";
-  },
-});
-
-// Endpoint to provide CSRF token to the client
-app.get("/api/csrf-token", csrfProtection, (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
-});
-
-// ── Conditionally apply CSRF protection ────────────────────────────────────────
-// Skip CSRF protection for PUT /api/home (file uploads) and all /api/users routes.
-// These routes are assumed to be protected by other means (e.g., JWT).
-app.use((req, res, next) => {
-  if (
-    (req.path === "/api/home" && req.method === "PUT") ||
-    req.path.startsWith("/api/users")
-  ) {
-    return next();
-  } else {
-    return csrfProtection(req, res, next);
-  }
-});
+// Note: CSRF protection is completely disabled. The following endpoint is removed:
+// app.get("/api/csrf-token", ...);
 
 // Serve static files from the "uploads" folder
 app.use(
@@ -131,12 +101,6 @@ app.use("/api/contact-banner", contactBannerRoutes);
 app.use("/api/home", homeRoutes);
 app.use("/api/event-details", eventDetailsRoutes);
 app.use("/api/stats", statsRoutes);
-
-// ── CSRF error handler ─────────────────────────────────────────────────────────
-app.use((err, req, res, next) => {
-  if (err.code !== "EBADCSRFTOKEN") return next(err);
-  res.status(403).json({ message: "Invalid CSRF token" });
-});
 
 // ── General error handler ──────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
