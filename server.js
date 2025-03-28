@@ -23,7 +23,7 @@ const bookRoutes = require("./routes/BookRoute");
 const authRoutes = require("./routes/authRoutes");
 const usersRoutes = require("./routes/users");
 const categoriesRoutes = require("./routes/categories");
-const paymentRoutes = require("./routes/paymentRoutes"); // Payments route
+const paymentRoutes = require("./routes/paymentRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
 const importantLinksRoutes = require("./routes/importantLinksRoutes");
 const bannerRoutes = require("./routes/bannerRoutes");
@@ -59,7 +59,7 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        frameAncestors: ["'self'", "https://churchlife.vercel.app"],
+        frameAncestors: ["'self'", "http://localhost:5173"],
       },
     },
   })
@@ -67,10 +67,6 @@ app.use(
 
 // ── Mount payments route BEFORE CSRF protection ─────────────────────────────
 app.use("/api/payments", paymentRoutes);
-
-// ── Exempt Auth Routes from CSRF Protection ───────────────────────────────────
-// Mount authentication routes before applying CSRF protection so that login, register, etc. bypass CSRF.
-app.use("/api/auth", authRoutes);
 
 // ── Set up CSRF protection for all subsequent routes ──────────────────────────
 const csrfProtection = csurf({
@@ -81,30 +77,33 @@ const csrfProtection = csurf({
   },
 });
 
-// Home endpoint to verify backend is working
-app.get("/", function (req, res) {
-  res.send("backend is workings");
-});
-
 // Endpoint to provide CSRF token to the client
 app.get("/api/csrf-token", csrfProtection, (req, res) => {
   res.json({ csrfToken: req.csrfToken() });
 });
 
-// Apply CSRF protection to all routes below this point
-app.use(csrfProtection);
+// ── Conditionally apply CSRF protection ────────────────────────────────────────
+// For PUT requests to /api/home (file uploads), we skip CSRF protection
+app.use((req, res, next) => {
+  if (req.path === "/api/home" && req.method === "PUT") {
+    return next();
+  } else {
+    return csrfProtection(req, res, next);
+  }
+});
 
 // Serve static files from the "uploads" folder
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"), {
     setHeaders: (res, filePath, stat) => {
-      res.set("Access-Control-Allow-Origin", "https://churchlife.vercel.app");
+      res.set("Access-Control-Allow-Origin", "http://localhost:5173");
     },
   })
 );
 
 // ── Mount other routes ─────────────────────────────────────────────────────────
+app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/users", usersRoutes);
@@ -135,7 +134,7 @@ app.use((err, req, res, next) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({
-    message: "An unexpected error occurred. Please try again later.",
+    message: "An unexpected error occurred. Please try again later."
   });
 });
 
